@@ -38,15 +38,24 @@ server <- function(input, output, session) {
       addTiles()
   })
   
-  # Add Circle Markers on clicks on the Map
+  # Add Circle Markers on clicks on the Map if Add Marker is TRUE
   observeEvent(input$map_click, {
-    click = input$map_click
-    
-    leafletProxy('map') %>%
-      addCircleMarkers(lng = click$lng, lat = click$lat)
+    if (input$isPutMarker) {
+      click = input$map_click
+      
+      leafletProxy('map') %>%
+        addCircleMarkers(lng = click$lng, lat = click$lat)
+    }
+  })
+  
+  # Remove Markers when toggle Add Marker
+  observeEvent(input$isPutMarker, {
+      leafletProxy('map') %>%
+        clearMarkers()
   })
   
   # Select Add Marker Name
+  # If Add Marker Mode TRUE then put an option of Others to add new Marker Name 
   observeEvent(input$isPutMarker, {
     if (input$isPutMarker) {
       updateSelectInput(session, 'markerName', 'Marker Place Name', choices = c(location_data$name, 'Other'))
@@ -55,16 +64,21 @@ server <- function(input, output, session) {
     }
   })
   
-  # If Add Marker Mode TRUE then put an option of Others to add new Marker Name
+  # If Other is selected then display textInput to enter name of the place
   observeEvent(input$markerName, {
     if (input$markerName == 'Other') {
       output$newMarkerName <- renderUI(
-        textInput('newMarkerName', 'Other', placeholder = 'If not present above')
+        textInput('newMarkerNameText', 'Other', placeholder = 'If not present above')
       )
     } else {
-
+      if(!is.null(input$newMarkerNameText)){
+        removeUI(selector = "#newMarkerNameText")
+        removeUI(selector = "#newMarkerNameText-label")
+      }
     }
   })
+  
+  
 }
 
 shinyApp(map_ui, server)
