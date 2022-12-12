@@ -1,5 +1,6 @@
 # Necessary Packages
 library(shiny)
+library(shinyFeedback)
 library(leaflet)
 library(tidyverse)
 
@@ -7,8 +8,8 @@ library(tidyverse)
 # Location Data
 location_data <- tibble(
   'name' = c('Bonhooghly Bus Stand', 'Indian Statistical Institute Kolkata'),
-  'lng' = c(22.6452, 22.6487),
-  'lat' = c(88.3775, 88.3769)
+  'lng' = c(88.3775, 88.3769),
+  'lat' = c(22.6452, 22.6487)
 )
 
 
@@ -25,12 +26,16 @@ map_ui <- bootstrapPage(
     top = 10, right = 10,
     checkboxInput('isPutMarker', 'Add marker on click?', value = FALSE),
     selectInput('markerName', 'View Place', choices = location_data$name),
+    useShinyFeedback(),
     uiOutput('newMarkerName')
   )
 )
 
 # SERVER-----------------------------------------------------------------------
 server <- function(input, output, session) {
+  
+  # Location Data
+  data <- reactiveVal(location_data)
   
   # Render First Map
   output$map <- renderLeaflet({
@@ -43,28 +48,53 @@ server <- function(input, output, session) {
     if (input$isPutMarker) {
       click = input$map_click
       
+      # Update the location_data
+      # Name of the place whose circle is added
+      new_point_name <- input$markerName
+      if (input$markerName == 'Other') {
+        # Raise Warning if No place name is entered in Other
+        feedbackWarning('newMarkerNameText', input$newMarkerNameText == "", "Place name can't be empty!")
+        req(input$newMarkerNameText != "")
+        new_point_name <- input$newMarkerNameText
+      }
+      
       leafletProxy('map') %>%
         addCircleMarkers(lng = click$lng, lat = click$lat)
+      
+      new_point_data <- tibble(
+        'name' = new_point_name, 
+        'lng' = click$lng,
+        'lat' = click$lat
+      )
+      dat <- data() %>%
+        full_join(new_point_data)
+      data(dat)
+      print(data())
     }
   })
   
   # Remove Markers when toggle Add Marker
   observeEvent(input$isPutMarker, {
-      leafletProxy('map') %>%
-        clearMarkers()
+    leafletProxy('map') %>%
+      clearMarkers()
+    
+    if (!input$isPutMarker) {
+      leafletProxy('map', data = data()) %>%
+      addMarkers(~lng, ~lat)
+    }
   })
   
   # Select Add Marker Name
   # If Add Marker Mode TRUE then put an option of Others to add new Marker Name 
   observeEvent(input$isPutMarker, {
     if (input$isPutMarker) {
-      updateSelectInput(session, 'markerName', 'Marker Place Name', choices = c(location_data$name, 'Other'))
+      updateSelectInput(session, 'markerName', 'Marker Place Name', choices = c(unique(data()$name), 'Other'))
     } else {
-      updateSelectInput(session, 'markerName', 'View Place', choices = location_data$name)
+      updateSelectInput(session, 'markerName', 'View Place', choices = unique(data()$name))
     }
   })
   
-  # If Other is selected then display textInput to enter name of the place
+  # If Other is selected then display textInput to enter name of the place otherwise remove this Other textInput
   observeEvent(input$markerName, {
     if (input$markerName == 'Other') {
       output$newMarkerName <- renderUI(
