@@ -1,6 +1,7 @@
 # Necessary Packages
 library(shiny)
 library(shinyFeedback)
+library(shinyWidgets)
 library(leaflet)
 library(jpeg)
 library(tidyverse)
@@ -81,7 +82,7 @@ server <- function(input, output, session) {
   
   # Marked locations on an image
   points <- reactiveVal(
-    tibble('name' = c(NA), 'rel_x' = c(NA), 'rel_y' = c(NA))
+    tibble('name' = c(''), 'rel_x' = c(NA), 'rel_y' = c(NA))
   )
   
   # Display images for markup
@@ -94,13 +95,13 @@ server <- function(input, output, session) {
     }, res = 96, height = dim(screenshots_image)[1], width = dim(screenshots_image)[2])  
   })
   
-  # Update Image on click
+  # Update image on click and the location database for that image
   observeEvent(input$plot_click, {
     click <- input$plot_click
     screenshots_image <- readJPEG(screenshots()[1, 'datapath']) # MAKE IT CUSTOM SS
     
     click_data <- points() %>%
-      full_join(tibble('name' = c(NA), 'rel_x' = click$x, 'rel_y' = click$y))
+      full_join(tibble('name' = c(''), 'rel_x' = click$x, 'rel_y' = click$y))
     points(click_data)
     print(points())
     print(input$dimension)
@@ -108,9 +109,29 @@ server <- function(input, output, session) {
     output$plot <- renderPlot({
       ggdraw(xlim = c(0, dim(screenshots_image)[2]), ylim = c(0, dim(screenshots_image)[1])) +
         draw_image(screenshots_image, width = dim(screenshots_image)[2], height = dim(screenshots_image)[1]) +
-        geom_point(aes(rel_x, rel_y), data = points(), size= 5)
+        geom_point(aes(rel_x, rel_y), data = points(), size = 5)
     }, res = 96, height = dim(screenshots_image)[1], width = dim(screenshots_image)[2])  
     
+  })
+  
+  # Add Place Name for the current point clicked on Image
+  observeEvent(input$plot_click, {
+    inputSweetAlert(
+      session = session,
+      "locName",
+      input = "text",
+      title = "Enter name of this location.",
+      inputPlaceholder = "e.g.: Indian Statistical Institute Kolkata",
+      allowOutsideClick = FALSE,
+      showCloseButton = FALSE
+    )
+  })
+  observe({
+    req(input$locName)
+    click_data_name <- points()
+    click_data_name[nrow(click_data_name), 1] <- input$locName
+    points(click_data_name)
+    print(points())
   })
   
   
