@@ -45,9 +45,11 @@ MarkUpPageUI <- tabPanel(
                                     Shiny.onInputChange("dimension", dimension);
                                 });
                             ')),
-  plotOutput( # Plot Screenshot
-    'plot', inline = TRUE,
-    click = 'plot_click'
+  div(style='width:800px;overflow-x: scroll;height:600px;overflow-y: scroll;',
+      plotOutput( # Plot Screenshot
+        'plot', inline = TRUE,
+        click = 'plot_click'
+      )
   )
 )
 
@@ -77,20 +79,38 @@ server <- function(input, output, session) {
     input$screenshots
   })
   
+  # Marked locations on an image
+  points <- reactiveVal(
+    tibble('name' = c(NA), 'rel_x' = c(NA), 'rel_y' = c(NA))
+  )
+  
   # Display images for markup
   observeEvent(input$MarkUpButton, {
     updateTabsetPanel(inputId = 'MapLocApp', selected = 'MarkUpPage')
-    screenshots_image <- readJPEG(screenshots()[1, 'datapath'])
+    screenshots_image <- readJPEG(screenshots()[1, 'datapath']) # MAKE IT CUSTOM SS
     output$plot <- renderPlot({
-      ggdraw(xlim = c(0, input$dimension[1]), ylim = c(0, input$dimension[2])) +
-        draw_image(screenshots_image, width = input$dimension[1], height = input$dimension[2])
-    }, res = 96, height = input$dimension[2], width = input$dimension[1])  
+      ggdraw(xlim = c(0, dim(screenshots_image)[2]), ylim = c(0, dim(screenshots_image)[1])) +
+        draw_image(screenshots_image, width = dim(screenshots_image)[2], height = dim(screenshots_image)[1])
+    }, res = 96, height = dim(screenshots_image)[1], width = dim(screenshots_image)[2])  
   })
   
   # Update Image on click
   observeEvent(input$plot_click, {
     click <- input$plot_click
-    print(click$x)
+    screenshots_image <- readJPEG(screenshots()[1, 'datapath']) # MAKE IT CUSTOM SS
+    
+    click_data <- points() %>%
+      full_join(tibble('name' = c(NA), 'rel_x' = click$x, 'rel_y' = click$y))
+    points(click_data)
+    print(points())
+    print(input$dimension)
+    
+    output$plot <- renderPlot({
+      ggdraw(xlim = c(0, dim(screenshots_image)[2]), ylim = c(0, dim(screenshots_image)[1])) +
+        draw_image(screenshots_image, width = dim(screenshots_image)[2], height = dim(screenshots_image)[1]) +
+        geom_point(aes(rel_x, rel_y), data = points(), size= 5)
+    }, res = 96, height = dim(screenshots_image)[1], width = dim(screenshots_image)[2])  
+    
   })
   
   
