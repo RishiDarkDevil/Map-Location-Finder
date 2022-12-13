@@ -4,6 +4,8 @@ library(shinyFeedback)
 library(leaflet)
 library(jpeg)
 library(tidyverse)
+library(cowplot)
+library(magick)
 
 # DATA-------------------------------------------------------------------------
 # Location Data
@@ -43,10 +45,9 @@ MarkUpPageUI <- tabPanel(
                                     Shiny.onInputChange("dimension", dimension);
                                 });
                             ')),
-  imageOutput(
-    'image',
-    width = 'auto', height = 'auto', inline = TRUE, 
-    click = 'image_click'
+  plotOutput( # Plot Screenshot
+    'plot', inline = TRUE,
+    click = 'plot_click'
   )
 )
 
@@ -56,6 +57,7 @@ ResultPageUI <- tabPanel(
   "View Results"
 )
 
+# Put all UI together
 ui <- fluidPage(
   tabsetPanel(
     id = 'MapLocApp',
@@ -78,22 +80,17 @@ server <- function(input, output, session) {
   # Display images for markup
   observeEvent(input$MarkUpButton, {
     updateTabsetPanel(inputId = 'MapLocApp', selected = 'MarkUpPage')
-    print(input$dimension)
-    output$image <- renderImage({
-      list(
-        src = screenshots()[1,'datapath'],
-        contentType = 'image/jpeg',
-        alt = 'screenshot',
-        width = paste0(input$dimension[0], 'px'), height = paste0(input$dimension[1], 'px'),
-        style="display: block; margin-left: auto; margin-right: auto;"
-      )
-    }, deleteFile = FALSE)  
+    screenshots_image <- readJPEG(screenshots()[1, 'datapath'])
+    output$plot <- renderPlot({
+      ggdraw(xlim = c(0, input$dimension[1]), ylim = c(0, input$dimension[2])) +
+        draw_image(screenshots_image, width = input$dimension[1], height = input$dimension[2])
+    }, res = 96, height = input$dimension[2], width = input$dimension[1])  
   })
   
   # Update Image on click
-  observeEvent(input$image_click, {
-    click <- input$image_click
-    
+  observeEvent(input$plot_click, {
+    click <- input$plot_click
+    print(click$x)
   })
   
   
