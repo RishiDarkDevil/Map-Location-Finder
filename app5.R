@@ -113,6 +113,9 @@ server <- function(input, output, session) {
     tibble('screenshot' = c(0), 'name' = c(''), 'rel_x' = c(NA), 'rel_y' = c(NA), 'dim_x' = c(NA), 'dim_y' = c(NA))
   )
   
+  # Vector Map Data
+  pointsVM <- reactiveVal(0)
+  
   # Helper function for displaying images for markup
   displayImage <- function(img_idx) {
     screenshots_image <- readJPEG(screenshots()[img_idx, 'datapath'])
@@ -202,16 +205,88 @@ server <- function(input, output, session) {
         'x' = x_coord_names,
         'y' = y_coord_names
       )
+      pointsVM(VMSdata)
       print(VMSdata) ##########
       output$plotVM <- renderPlot({
-        VMSdata %>%
-        ggplot(aes(x, y)) +
+        pointsVM() %>%
+          ggplot(aes(x, y)) +
           geom_point() +
-          xlim(range(VMSdata$x)[1] - 10, range(VMSdata$x)[2] + 10) +
-          ylim(range(VMSdata$y)[1] - 10, range(VMSdata$y)[2] + 10)
-      })
+          xlim(range(pointsVM()$x)[1] - 10, range(pointsVM()$x)[2] + 10) +
+          ylim(range(pointsVM()$y)[1] - 10, range(pointsVM()$y)[2] + 10)+
+          labs(
+            x = "Global X coordinates",
+            y = "Global Y coordinates"
+          ) +
+          theme_bw() +
+          theme(
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
+            strip.background = element_blank()
+          ) 
+      }, res = 96)
       updateTabsetPanel(inputId = 'MapLocApp', selected = 'ResultPage')
     }
+  })
+  
+  observeEvent(input$plot_hover, {
+    # hover tooltip
+    hover_data <- nearPoints(pointsVM(), input$plot_hover) %>% 
+      mutate(label = paste("name:", name, 
+                           "\nglobal x:", round(x, 3), 
+                           "\nglobal y:", round(y, 3), sep = ""))
+    
+    # hover x and y coordinates
+    hover_summary <- paste0("x=", round(input$plot_hover$x, 3), 
+                            "\ny=", round(input$plot_hover$y, 3))
+    
+    # output the plot post-startup
+    output$plotVM <- renderPlot({
+      
+      # if hover_data has a row, then add it to geom_label
+      if(nrow(hover_data) == 1) {
+        pointsVM() %>%
+          ggplot(aes(x, y)) +
+          geom_point()  +
+          geom_label(data = hover_data, 
+                     aes(label = label), 
+                     nudge_x = 0.2
+          ) +
+          xlim(range(pointsVM()$x)[1] - 10, range(pointsVM()$x)[2] + 10) +
+          ylim(range(pointsVM()$y)[1] - 10, range(pointsVM()$y)[2] + 10)+
+          labs(
+            x = "Global X coordinates",
+            y = "Global Y coordinates"
+          ) +
+          theme_bw() +
+          theme(
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
+            strip.background = element_blank()
+          )
+      } else { # back to original state if no hover_data
+        pointsVM() %>%
+          ggplot(aes(x, y)) +
+          geom_point() +
+          xlim(range(pointsVM()$x)[1] - 10, range(pointsVM()$x)[2] + 10) +
+          ylim(range(pointsVM()$y)[1] - 10, range(pointsVM()$y)[2] + 10)+
+          labs(
+            x = "Global X coordinates",
+            y = "Global Y coordinates"
+          ) +
+          theme_bw() +
+          theme(
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
+            strip.background = element_blank()
+          ) 
+      } 
+    })
   })
   
 }
