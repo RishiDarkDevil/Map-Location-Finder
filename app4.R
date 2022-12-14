@@ -52,11 +52,14 @@ MarkUpPageUI <- tabPanel(
                left = miniTitleBarButton("prev", "Previous", primary = TRUE),
                right = miniTitleBarButton("nex", "Next", primary = TRUE)
   ),
-  div(style='width:800px;overflow-x: scroll;height:600px;overflow-y: scroll;',
+  fluidRow(
+    column(
+      12, align = 'center',
       plotOutput( # Plot Screenshot
         'plot', inline = TRUE,
         click = 'plot_click'
       )
+    )
   )
 )
 
@@ -110,7 +113,7 @@ server <- function(input, output, session) {
           geom_point(aes(rel_x, rel_y), data = points() %>% filter(screenshot == currindex()), size = 5)
       }, res = 96, height = dim(screenshots_image)[1], width = dim(screenshots_image)[2])
     }
-     
+    
   }
   
   # Display images for markup
