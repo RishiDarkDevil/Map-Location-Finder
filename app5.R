@@ -79,6 +79,24 @@ ResultPageUI <- tabPanel(
                             delayType = "debounce",
                             clip = TRUE, nullOutside = TRUE)
         )
+      ),
+      box(
+        title = "X Coordinate Model Residuals", status = "warning", solidHeader = TRUE, collapsible = TRUE,
+        plotOutput( # Plot VectorMap
+          'plotXRes', 
+          hover = hoverOpts(id = "plot_hover_x_res", delay = 100, 
+                            delayType = "debounce",
+                            clip = TRUE, nullOutside = TRUE)
+        )
+      ),
+      box(
+        title = "Y Coordinate Model Residuals", status = "warning", solidHeader = TRUE, collapsible = TRUE,
+        plotOutput( # Plot VectorMap
+          'plotYRes', 
+          hover = hoverOpts(id = "plot_hover_y_res", delay = 100, 
+                            delayType = "debounce",
+                            clip = TRUE, nullOutside = TRUE)
+        )
       )
     )
   )
@@ -115,6 +133,9 @@ server <- function(input, output, session) {
   
   # Vector Map Data
   pointsVM <- reactiveVal(0)
+  
+  # Residual Map Data
+  pointsRes <- reactiveVal(0)
   
   # Helper function for displaying images for markup
   displayImage <- function(img_idx) {
@@ -188,7 +209,8 @@ server <- function(input, output, session) {
       displayImage(currindex())
       if (currindex() == nrow(screenshots()))
         updateActionButton(session, 'nex', 'Finish')
-    } else {
+    } else { 
+      # If all screenshot finished and finished button clicked then change to result page and generate results
       show_alert(
         title = "Success !!",
         text = "Vector Map Generated",
@@ -203,10 +225,12 @@ server <- function(input, output, session) {
       VMSdata <- tibble(
         'name' = substring(names(x_coord_names), 5),
         'x' = x_coord_names,
-        'y' = y_coord_names
+        'y' = y_coord_names,
       )
       pointsVM(VMSdata)
       print(VMSdata) ##########
+      
+      # Vector Map Plot
       output$plotVM <- renderPlot({
         pointsVM() %>%
           ggplot(aes(x, y)) +
@@ -226,10 +250,63 @@ server <- function(input, output, session) {
             strip.background = element_blank()
           ) 
       }, res = 96)
+      
+      resData <- tibble(
+        'name' = points()$name,
+        'screenshot' = points()$screenshot,
+        'pred_x' = predict(fit_x, points()),
+        'pred_y' = predict(fit_y, points()),
+        'res_x' = fit_x$residuals,
+        'res_y' = fit_y$residuals
+      )
+      
+      print(resData) ######
+      pointsRes(resData)
+
+      # X residuals plot
+      output$plotXRes <- renderPlot({
+        resData %>%
+          ggplot(aes(pred_x, res_x)) +
+          geom_point() +
+          labs(
+            x = "Fitted X ordinate",
+            y = "Residuals"
+          ) +
+          theme_bw() +
+          theme(
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
+            strip.background = element_blank()
+          )
+      }, res = 96)
+
+      # Y residuals plot
+      output$plotYRes <- renderPlot({
+        resData %>%
+          ggplot(aes(pred_y, res_y)) +
+          geom_point() +
+          labs(
+            x = "Fitted Y abscissa",
+            y = "Residuals"
+          ) +
+          theme_bw() +
+          theme(
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
+            strip.background = element_blank()
+          )
+      }, res = 96)
+      
+      
       updateTabsetPanel(inputId = 'MapLocApp', selected = 'ResultPage')
     }
   })
   
+  # Result Page Vector Map Plot Hover
   observeEvent(input$plot_hover, {
     # hover tooltip
     hover_data <- nearPoints(pointsVM(), input$plot_hover) %>% 
@@ -276,6 +353,112 @@ server <- function(input, output, session) {
           labs(
             x = "Global X coordinates",
             y = "Global Y coordinates"
+          ) +
+          theme_bw() +
+          theme(
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
+            strip.background = element_blank()
+          ) 
+      } 
+    })
+  })
+  
+  # Result Page X Res Plot Hover
+  observeEvent(input$plot_hover_x_res, {
+    # hover tooltip
+    hover_data <- nearPoints(pointsRes(), input$plot_hover_x_res) %>% 
+      mutate(label = paste("name:", name, 
+                           "\nscreenshot:", screenshot, 
+                           "\nresidual:", round(res_x, 3), sep = ""))
+    
+    
+    # output the plot post-startup
+    output$plotXRes <- renderPlot({
+      
+      # if hover_data has a row, then add it to geom_label
+      if(nrow(hover_data) == 1) {
+        pointsRes() %>%
+          ggplot(aes(pred_x, res_x)) +
+          geom_point()  +
+          geom_label(data = hover_data, 
+                     aes(label = label), 
+                     nudge_x = 0.2
+          ) +
+          labs(
+            x = "Fitted X ordinate",
+            y = "Residuals"
+          ) +
+          theme_bw() +
+          theme(
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
+            strip.background = element_blank()
+          )
+      } else { # back to original state if no hover_data
+        pointsRes() %>%
+          ggplot(aes(pred_x, res_x)) +
+          geom_point() +
+          labs(
+            x = "Fitted X ordinate",
+            y = "Residuals"
+          ) +
+          theme_bw() +
+          theme(
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
+            strip.background = element_blank()
+          ) 
+      } 
+    })
+  })
+  
+  # Result Page Y Res Plot Hover
+  observeEvent(input$plot_hover_y_res, {
+    # hover tooltip
+    hover_data <- nearPoints(pointsRes(), input$plot_hover_y_res) %>% 
+      mutate(label = paste("name:", name, 
+                           "\nscreenshot:", screenshot, 
+                           "\nresidual:", round(res_y, 3), sep = ""))
+    
+    
+    # output the plot post-startup
+    output$plotYRes <- renderPlot({
+      
+      # if hover_data has a row, then add it to geom_label
+      if(nrow(hover_data) == 1) {
+        pointsRes() %>%
+          ggplot(aes(pred_y, res_y)) +
+          geom_point()  +
+          geom_label(data = hover_data, 
+                     aes(label = label), 
+                     nudge_x = 0.2
+          ) +
+          labs(
+            x = "Fitted  ordinate",
+            y = "Residuals"
+          ) +
+          theme_bw() +
+          theme(
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
+            strip.background = element_blank()
+          )
+      } else { # back to original state if no hover_data
+        pointsRes() %>%
+          ggplot(aes(pred_y, res_y)) +
+          geom_point() +
+          labs(
+            x = "Fitted Y abscissa",
+            y = "Residuals"
           ) +
           theme_bw() +
           theme(
