@@ -23,12 +23,21 @@ location_data <- tibble(
 # Upload Page -----------------------------------------------------------------
 UploadPageUI <- tabPanel(
   'UploadPage',
-  fileInput(
-    'screenshots', 'Upload JPEG Map Screenshots',
-    multiple = TRUE, accept = c('.jpg', '.jpeg')
-  ),
-  actionButton(
-    'MarkUpButton', 'Markup Map Screenshots'
+  h1("Map Location Finder", align = "center", style = "font-weight: bold"),
+  h2("Vector Map Stitching from Annotations on Map Screenshots", align = "center"),
+  h3(tags$a(href="https://github.com/RishiDarkDevil", "By Rishi Dey Chowdhury(RishiDarkDevil)", target = "_blank"), align = "center"),
+  fluidRow(
+    column(
+      width = 12,
+      align = 'center',
+      fileInput(
+        'screenshots', 'Upload JPEG Map Screenshots',
+        multiple = TRUE, accept = c('.jpg', '.jpeg')
+      ),
+      actionButton(
+        'MarkUpButton', 'Markup Map Screenshots'
+      )
+    )
   )
 )
 
@@ -117,24 +126,6 @@ ResultPageUI <- tabPanel(
         )
       ),
       box(
-        title = "X DFBETAs", status = "info", solidHeader = TRUE, collapsible = TRUE,
-        plotOutput( # Plot X DFBETAs
-          'plotDFBETAX', 
-          hover = hoverOpts(id = "plot_hover_dfbeta_x", delay = 100, 
-                            delayType = "debounce",
-                            clip = TRUE, nullOutside = TRUE)
-        )
-      ),
-      box(
-        title = "Y DFBETAs", status = "info", solidHeader = TRUE, collapsible = TRUE,
-        plotOutput( # Plot Y DFBETAs
-          'plotDFBETAY', 
-          hover = hoverOpts(id = "plot_hover_dfbeta_y", delay = 100, 
-                            delayType = "debounce",
-                            clip = TRUE, nullOutside = TRUE)
-        )
-      ),
-      box(
         title = "X Cook's Distance", status = "info", solidHeader = TRUE, collapsible = TRUE,
         plotOutput( # Plot X DFFITs
           'plotCOOKX', 
@@ -191,6 +182,10 @@ server <- function(input, output, session) {
   # Residual Map Data
   pointsRes <- reactiveVal(0)
   
+  # Influential Map Data
+  pointsInfX <- reactiveVal(0)
+  pointsInfY <- reactiveVal(0)
+  
   # Helper function for displaying images for markup
   displayImage <- function(img_idx) {
     screenshots_image <- readJPEG(screenshots()[img_idx, 'datapath'])
@@ -223,8 +218,8 @@ server <- function(input, output, session) {
     click_data <- points() %>%
       full_join(tibble('screenshot' = c(currindex()), 'name' = c(''), 'rel_x' = click$x, 'rel_y' = click$y, 'dim_x' = dim(screenshots_image)[2], 'dim_y' = dim(screenshots_image)[1]))
     points(click_data)
-    print(points())
-    print(input$dimension)
+    print(points()) #####
+    print(input$dimension) #######
     displayImage(currindex())
     
     # Add name of place
@@ -264,6 +259,7 @@ server <- function(input, output, session) {
       if (currindex() == nrow(screenshots()))
         updateActionButton(session, 'nex', 'Finish')
     } else { 
+      
       # If all screenshot finished and finished button clicked then change to result page and generate results
       show_alert(
         title = "Success !!",
@@ -317,8 +313,15 @@ server <- function(input, output, session) {
       print(resData) ######
       pointsRes(resData)
       
-      infXData <- as_tibble(influence.measures(fit_x)$infmat)
-      infYData <- as_tibble(influence.measures(fit_y)$infmat)
+      infXData <- as_tibble(influence.measures(fit_x)$infmat) %>%
+        mutate('name' = points()$name, 'screenshot' = points()$screenshot, 'id' = 1:nrow(points())) 
+      infYData <- as_tibble(influence.measures(fit_y)$infmat) %>%
+        mutate('name' = points()$name, 'screenshot' = points()$screenshot, 'id' = 1:nrow(points()))
+      
+      print(infXData) ####
+      print(infYData) ####
+      pointsInfX(infXData)
+      pointsInfY(infYData)
       
       # X residuals plot
       output$plotXRes <- renderPlot({
@@ -358,13 +361,88 @@ server <- function(input, output, session) {
           )
       }, res = 96)
       
+      # X Dffit plot
+      output$plotDFFITX <- renderPlot({
+        infXData %>%
+          ggplot(aes(id, dffit)) +
+          geom_point() +
+          labs(
+            x = "Points",
+            y = "X Dffits"
+          ) +
+          theme_bw() +
+          theme(
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
+            strip.background = element_blank()
+          )
+      }, res = 96)
+      
+      # Y Dffit plot
+      output$plotDFFITY <- renderPlot({
+        infYData %>%
+          ggplot(aes(id, dffit)) +
+          geom_point() +
+          labs(
+            x = "Points",
+            y = "Y Dffits"
+          ) +
+          theme_bw() +
+          theme(
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
+            strip.background = element_blank()
+          )
+      }, res = 96)
+      
+      # X Dffit plot
+      output$plotCOOKX <- renderPlot({
+        infXData %>%
+          ggplot(aes(id, cook.d)) +
+          geom_point() +
+          labs(
+            x = "Points",
+            y = "X Cook's Distance"
+          ) +
+          theme_bw() +
+          theme(
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
+            strip.background = element_blank()
+          )
+      }, res = 96)
+      
+      # X Dffit plot
+      output$plotCOOKY <- renderPlot({
+        infYData %>%
+          ggplot(aes(id, cook.d)) +
+          geom_point() +
+          labs(
+            x = "Points",
+            y = "Y Cook's Distance"
+          ) +
+          theme_bw() +
+          theme(
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            axis.line = element_line(colour = "black"),
+            strip.background = element_blank()
+          )
+      }, res = 96)
       
       updateTabsetPanel(inputId = 'MapLocApp', selected = 'ResultPage')
     }
   })
   
   # Enables Hover Function on a plot with proper arguments passed to it
-  enableHover <- function(hover_data, dat, xvar, yvar, xlabel, ylabel) {
+  enableHover <- function(hover_data, dat, xvar, yvar, xlabel, ylabel, VM = FALSE) {
     if(nrow(hover_data) == 1) {
       dat %>%
         ggplot(aes_string(xvar, yvar)) +
@@ -373,12 +451,12 @@ server <- function(input, output, session) {
                    aes(label = label), 
                    nudge_x = 0.2
         ) +
-        xlim(range(dat[[xvar]])[1] - 10, range(dat[[xvar]])[2] + 10) +
-        ylim(range(dat[[yvar]])[1] - 10, range(dat[[yvar]])[2] + 10)+
         labs(
           x = xlabel,
           y = ylabel
         ) +
+        {if (VM) xlim(range(dat[[xvar]])[1] - 10, range(dat[[xvar]])[2] + 10)} +
+        {if (VM) ylim(range(dat[[yvar]])[1] - 10, range(dat[[yvar]])[2] + 10)} +
         theme_bw() +
         theme(
           panel.border = element_blank(),
@@ -395,12 +473,12 @@ server <- function(input, output, session) {
                    aes(label = label), 
                    nudge_x = 0.2
         ) +
-        xlim(range(dat[[xvar]])[1] - 10, range(dat[[xvar]])[2] + 10) +
-        ylim(range(dat[[yvar]])[1] - 10, range(dat[[yvar]])[2] + 10)+
         labs(
           x = xlabel,
           y = ylabel
         ) +
+        {if (VM) xlim(range(dat[[xvar]])[1] - 10, range(dat[[xvar]])[2] + 10)} +
+        {if (VM) ylim(range(dat[[yvar]])[1] - 10, range(dat[[yvar]])[2] + 10)} +
         theme_bw() +
         theme(
           panel.border = element_blank(),
@@ -408,7 +486,7 @@ server <- function(input, output, session) {
           panel.grid.minor = element_blank(),
           axis.line = element_line(colour = "black"),
           strip.background = element_blank()
-        ) 
+        )
     } 
   }
   
@@ -426,8 +504,7 @@ server <- function(input, output, session) {
     
     # output the plot post-startup
     output$plotVM <- renderPlot({
-      
-      enableHover(hover_data, pointsVM(), 'x', 'y', 'Global X Coordinates', 'Global Y Coordinates') 
+      enableHover(hover_data, pointsVM(), 'x', 'y', 'Global X Coordinates', 'Global Y Coordinates', TRUE) 
     })
   })
   
@@ -439,10 +516,8 @@ server <- function(input, output, session) {
                            "\nscreenshot:", screenshot, 
                            "\nresidual:", round(res_x, 3), sep = ""))
     
-    
     # output the plot post-startup
     output$plotXRes <- renderPlot({
-      
       enableHover(hover_data, pointsRes(), 'pred_x', 'res_x', 'Fitted X ordinate', 'X Residuals')
       
     })
@@ -456,27 +531,65 @@ server <- function(input, output, session) {
                            "\nscreenshot:", screenshot, 
                            "\nresidual:", round(res_y, 3), sep = ""))
     
-    
     # output the plot post-startup
     output$plotYRes <- renderPlot({
-      
       enableHover(hover_data, pointsRes(), 'pred_y', 'res_y', 'Fitted Y abscissa', 'Y Residuals')
     })
   })
   
-  # Result Page Y Res Plot Hover
-  observeEvent(input$plot_hover_y_res, {
+  # Result Page X Dffit Plot Hover
+  observeEvent(input$plot_hover_dffit_x, {
     # hover tooltip
-    hover_data <- nearPoints(pointsRes(), input$plot_hover_y_res) %>% 
+    hover_data <- nearPoints(pointsInfX(), input$plot_hover_dffit_x) %>% 
       mutate(label = paste("name:", name, 
                            "\nscreenshot:", screenshot, 
-                           "\nresidual:", round(res_y, 3), sep = ""))
-    
+                           "\ndffit:", round(dffit, 3), sep = ""))
     
     # output the plot post-startup
-    output$plotYRes <- renderPlot({
-      
-      enableHover(hover_data, pointsRes(), 'pred_y', 'res_y', 'Fitted Y abscissa', 'Y Residuals')
+    output$plotDFFITX <- renderPlot({
+      enableHover(hover_data, pointsInfX(), 'id', 'dffit', 'Points', 'X Dffits')
+    })
+  })
+  
+  # Result Page Y Dffit Plot Hover
+  observeEvent(input$plot_hover_dffit_y, {
+    # hover tooltip
+    hover_data <- nearPoints(pointsInfY(), input$plot_hover_dffit_y) %>% 
+      mutate(label = paste("name:", name, 
+                           "\nscreenshot:", screenshot, 
+                           "\ndffit:", round(dffit, 3), sep = ""))
+    
+    # output the plot post-startup
+    output$plotDFFITY <- renderPlot({
+      enableHover(hover_data, pointsInfY(), 'id', 'dffit', 'Points', 'Y Dffits')
+    })
+  })
+  
+  # Result Page X Cook's Distance Plot Hover
+  observeEvent(input$plot_hover_cook_x, {
+    # hover tooltip
+    hover_data <- nearPoints(pointsInfX(), input$plot_hover_cook_x) %>% 
+      mutate(label = paste("name:", name, 
+                           "\nscreenshot:", screenshot, 
+                           "\ncook's dist:", round(cook.d, 3), sep = ""))
+    
+    # output the plot post-startup
+    output$plotCOOKX <- renderPlot({
+      enableHover(hover_data, pointsInfX(), 'id', 'cook.d', 'Points', "X Cook's Distance")
+    })
+  })
+  
+  # Result Page X Cook's Distance Plot Hover
+  observeEvent(input$plot_hover_cook_y, {
+    # hover tooltip
+    hover_data <- nearPoints(pointsInfY(), input$plot_hover_cook_y) %>% 
+      mutate(label = paste("name:", name, 
+                           "\nscreenshot:", screenshot, 
+                           "\ncook's dist:", round(cook.d, 3), sep = ""))
+    
+    # output the plot post-startup
+    output$plotCOOKY <- renderPlot({
+      enableHover(hover_data, pointsInfY(), 'id', 'cook.d', 'Points', "Y Cook's Distance")
     })
   })
   
