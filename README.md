@@ -3,9 +3,9 @@
 ## Problem
 Consider a region small enough so that earth's curvature may be ignored, yet large enough so that Google map cannot fit it in a single screen at high resolution. We cover the region with a number of overlapping screenshots of the same or different resolutions. To understand the subsequent steps we focus on overlapping screenshots. There are known locations that I can identify at the current resoluton of that particular screenshot. Note that there are common locations in the overlapping part of screenshots. For each screenshot find the approx pixel coordinate of known locations wrt to the screenshots. Thus our data set consists of a subset of $(r_{ij},c_{ij})$'s for $i=1,...,n_{screenshots}$, and $j=1,...,n_{locations}$. Of course, not all $(i,j)$ pairs occur in the data, since the $j^{th}$ location may not show up in the $i^{th}$ screenshot. Here $r_{ij}$ is the distance (in pixels) of the point from the left side of the screenshot on the image. Similarly, $c_{ij}$ from the top of the screenshot.
 
-Let $(\mu_i,\lambda_i)$ be the true position of the $i^{th}$ location (w.r.t. some global coordinate system).
+Let $(\mu_j,\lambda_j)$ be the true position of the $j^{th}$ location (w.r.t. some global coordinate system).
 
-We can set up a linear model to estimate $(\mu_i,\lambda_i)$'s from the data.  Now I want to represent all the known points in a single plot with respect to there real relative position using a linear model.
+We can set up a linear model to estimate $(\mu_j,\lambda_j)$'s from the data.  Now I want to represent all the known points in a single plot with respect to there real relative position using a linear model.
 
 ## Theory
 
