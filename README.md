@@ -53,3 +53,4 @@ I have implemented the entire application as an R Shiny Web App (Still not hoste
 #### Note
 - The App might be bit sluggish with large number of screenshots.
 - Kindly, report any unexpected errors.
+- It will be hosted soon! Stay tuned.
