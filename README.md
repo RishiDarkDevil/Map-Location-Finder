@@ -31,9 +31,19 @@ $$
 
 #### Linear Model for Different Resolution Screenshots
 
-The idea is very simple, as the resolution of the screenshots vary, we map the relative location of each of the points to a common screenshot resolution, say the first screenshot. Let, the first screenshot have the resolution (in terms )
+The idea is very simple, as the resolution of the screenshots vary, we map the relative location of each of the points to a common screenshot resolution, say the first screenshot $res_1$. Let the $j^th$ screenshot resolution be measured in $res_j = \frac{unit\enspace dist}{num\enspace pix \enspace in\enspace unit\enspace dist}$ i.e. the distance covered per unit pixel in the $j^{th}$ screenshot. So, for $(\mu_j,\lambda_j)$ of $j^{th}$ location and $(x_i, y_i)$ of $i^{th}$ screenshot, which are measured in pixels wrt a global coordinate system. We can convert them to distance my multiplying with $res_j$. But again, $(r_{ijk}, c_{ijk})$ are in pixels. So, we divide the distances we got after multiplication by $res_1$. So, the proposed linear model becomes,
 
-TBD
+For $x$-coordinate:
+
+$$
+r_{ijk} = \mu_j\times\frac{res_j}{res_1} + x_i\times\frac{res_j}{res_1} + \varepsilon_{ijk}
+$$
+
+For $y$-coordinate:
+
+$$
+c_{ijk} = \lambda_j\times\frac{res_j}{res_1} + y_i\times\frac{res_j}{res_1} + \varepsilon_{ijk}
+$$
 
 ### Rank of the Linear Model
 
@@ -54,3 +64,4 @@ I have implemented the entire application as an R Shiny Web App (Still not hoste
 - The App might be bit sluggish with large number of screenshots.
 - Kindly, report any unexpected errors.
 - It will be hosted soon! Stay tuned.
+- Different Resolution Screenshot support to be updated soon.
