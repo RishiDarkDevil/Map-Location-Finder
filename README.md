@@ -58,7 +58,7 @@ I have implemented the entire application as an R Shiny Web App (Still not hoste
 ![Markup Page](App-Images/MarkLocation.png)
 - After a `Success!` prompt, the vector map is generated along with residual and influential point analysis. Each of the plots and Vector Map is interactive, with hover function enabled. You can hover over the points to get further detail about each point as shown below.
 ![Result1 Page](App-Images/Result11.png)
-Above is the vector map near the CV Raman Boys Hostel of Indian Statistical Institute Kolkata upto Amrapali.
+Above is the vector map near the CV Raman Boys Hostel of Indian Statistical Institute Kolkata upto Amrapali. I have deliberately chosen not to label all the points, for the cluttered nature of the map it generates.
 ![Result2 Page](App-Images/Result12.png)
 
 #### Note
