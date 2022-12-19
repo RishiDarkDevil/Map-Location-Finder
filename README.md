@@ -61,6 +61,9 @@ I have implemented the entire application as an R Shiny Web App (Still not hoste
 Above is the vector map near the CV Raman Boys Hostel of Indian Statistical Institute Kolkata upto Amrapali. I have deliberately chosen not to label all the points, for the cluttered nature of the map it generates.
 ![Result2 Page](App-Images/Result12.png)
 
+### Caution
+- The screenshots must be connected by atleast one location between them otherwise the global coordinates can't be estimated.
+
 #### Note
 - The App might be bit sluggish with large number of screenshots.
 - Kindly, report any unexpected errors.
